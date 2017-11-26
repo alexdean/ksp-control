@@ -1,17 +1,22 @@
 require 'net/http'
 require 'serialport'
 require_relative 'lib/control_message'
+require_relative 'lib/dispatcher'
 
 serial = SerialPort.new('/dev/tty.usbmodem1441', 9600, 8, 1, SerialPort::NONE)
+
+dispatcher = Dispatcher.new(telemachus_url: 'http://localhost')
+dispatcher.start
 
 threads = []
 
 threads << Thread.new {
   loop {
-    message = serial.gets
-    if message
-      message.chomp!
-      puts message
+    raw = serial.gets
+    if raw
+      raw.chomp!
+      message = ControlMessage.parse(raw)
+      dispatcher.push(message)
     end
   }
 }
@@ -24,3 +29,4 @@ threads << Thread.new {
 }
 
 threads.each { |thr| thr.join }
+dispatcher.stop
