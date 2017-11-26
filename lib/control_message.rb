@@ -1,12 +1,20 @@
 # a message from the control board. a data object.
 class ControlMessage
+
+  NO_VALUE = '-'
+
   def self.parse(message_str)
     args = {}
     mapping.each do |key, pos|
       val = message_str[pos]
-      val = val[0] == '-' ? nil : val.to_i
+      val = val[0] == NO_VALUE ? nil : val.to_i
 
       args[key] = val
+    end
+
+    action_group = message_str[0]
+    if action_group != NO_VALUE
+      args["action_group_#{action_group}".to_sym] = 1
     end
 
     new(args)
@@ -17,14 +25,23 @@ class ControlMessage
   # @return [Hash<Symbol,Integer,Range>]
   def self.mapping
     {
-      action_group: 0,
       throttle: 1..2,
       autopilot_mode: 3
     }
   end
 
   def self.valid_attrs
-    mapping.keys
+    mapping.keys + [
+      :action_group_1,
+      :action_group_2,
+      :action_group_3,
+      :action_group_4,
+      :action_group_5,
+      :action_group_6,
+      :action_group_7,
+      :action_group_8,
+      :action_group_9,
+    ]
   end
 
   def initialize(attrs = {})
@@ -68,13 +85,25 @@ class ControlMessage
       ours = read(attr)
       theirs = other_message.read(attr)
 
-      # if action_group has the same value, we should trigger that group again.
-      if ours != theirs || attr == :action_group && !ours.nil?
+      if ours != theirs
         out.write(attr, ours)
       end
     end
 
     out
+  end
+
+  def each
+    @attrs.each do |key, value|
+      yield key, value
+    end
+  end
+
+  def ==(other)
+    self.class.valid_attrs.each do |attr|
+      return false if read(attr) != other.read(attr)
+    end
+    true
   end
 
   private
