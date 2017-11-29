@@ -4,7 +4,6 @@ require root.join('lib/dispatcher.rb')
 RSpec.describe Dispatcher, type: :model do
   let(:subject) { Dispatcher.new(telemachus_url: 'http://localhost') }
   let(:msg_1) { ControlMessage.new }
-  let(:msg_1) { ControlMessage.new }
   let(:msg_2) { ControlMessage.new }
   let(:msg_3) { ControlMessage.new }
 

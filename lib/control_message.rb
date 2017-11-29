@@ -3,45 +3,84 @@ class ControlMessage
 
   NO_VALUE = '-'
 
+  # create a ControlMessage from a raw message string
+  #
+  # ## format
+  #
+  #   throttle: first 2 characters. '-' for 'disabled'
+  #   autopilot mode: 3rd character. '-' for 'disabled'
+  #   remaining digits: bitmask for all switches & other boolean values
   def self.parse(message_str)
     args = {}
-    mapping.each do |key, pos|
+    value_attrs.each do |key, pos|
       val = message_str[pos]
       val = val[0] == NO_VALUE ? nil : val.to_i
 
       args[key] = val
     end
 
-    action_group = message_str[0]
-    if action_group != NO_VALUE
-      args["action_group_#{action_group}".to_sym] = 1
+    bitmask = message_str[3..-1].to_i
+    bitmask_attrs.each_with_index do |attr, idx|
+      args[attr] = ((bitmask & (1 << idx)) != 0)
     end
 
     new(args)
   end
 
-  # describes how to map from raw message strings to attribute values
-  #
-  # @return [Hash<Symbol,Integer,Range>]
-  def self.mapping
+  def self.value_attrs
+    # f.setThrottle[0.0] / f.setThrottle[1.0]
+    #
+    # mj.prograde
+    # mj.retrograde
+    # mj.normalplus
+    # mj.normalminus
+    # mj.radialplus
+    # mj.radialminus
+    # mj.targetplus
+    # mj.targetminus
     {
-      throttle: 1..2,
-      autopilot_mode: 3
+      throttle: 0..1,
+      autopilot_mode: 2
     }
   end
 
-  def self.valid_attrs
-    mapping.keys + [
-      :action_group_1,
-      :action_group_2,
-      :action_group_3,
-      :action_group_4,
-      :action_group_5,
-      :action_group_6,
-      :action_group_7,
-      :action_group_8,
-      :action_group_9,
+  def self.bitmask_attrs
+    # f.stage
+    # f.sas[True]
+    # f.rcs[True]
+    # f.light[True]
+    # f.gear[True]
+    # f.brake[True]
+    # f.ag1
+    # f.ag2
+    # f.ag3
+    # f.ag4
+    # f.ag5
+    # f.ag6
+    # f.ag7
+    # f.ag8
+    # f.ag9
+    %i[
+      stage
+      sas_enable
+      rcs_enable
+      lights_enable
+      gear_enable
+      brakes_enable
+      action_group_1
+      action_group_2
+      action_group_3
+      action_group_4
+      action_group_5
+      action_group_6
+      action_group_7
+      action_group_8
+      action_group_9
     ]
+  end
+
+  def self.valid_attrs
+    value_attrs.keys + bitmask_attrs
   end
 
   def initialize(attrs = {})

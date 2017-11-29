@@ -4,21 +4,21 @@ require root.join('lib/control_message.rb')
 RSpec.describe ControlMessage, type: :model do
   describe '.parse' do
     it 'extracts data' do
-      input = '2013'
+      input = '0131'
       subject = ControlMessage.parse(input)
 
-      expect(subject.read(:action_group_2)).to eq 1
       expect(subject.read(:throttle)).to eq 1
       expect(subject.read(:autopilot_mode)).to eq 3
+      expect(subject.read(:stage)).to eq true
     end
 
     it 'sets nil values' do
-      input = '----'
+      input = '---0'
       subject = ControlMessage.parse(input)
 
-      expect(subject.read(:action_group_1)).to eq nil
       expect(subject.read(:throttle)).to eq nil
       expect(subject.read(:autopilot_mode)).to eq nil
+      expect(subject.read(:rcs_enable)).to eq false
     end
   end
 
