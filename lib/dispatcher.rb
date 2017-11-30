@@ -34,7 +34,7 @@ class Dispatcher
 
   # examine a current state message and post any changes to telemachus
   #
-  # @param [ControlMessage] an incoming message to process
+  # @param [ControlState] an incoming message to process
   def process(command)
     changes = command.diff(current_state)
     post(changes)

@@ -124,8 +124,8 @@ class ControlState
   # return a new message containing only the fields which differ from
   # other_message. (all values which match will be nil.)
   #
-  # @param [ControlMessage] other_message
-  # @return ControlMessage
+  # @param [ControlState] other_message
+  # @return ControlState
   def diff(other_message)
     out = self.class.new
 
@@ -143,7 +143,7 @@ class ControlState
 
   # does this instance have the same attribute values as the other?
   #
-  # @param [ControlMessage] other
+  # @param [ControlState] other
   # @return [boolean]
   def ==(other)
     self.class.valid_attrs.each do |attr|
@@ -154,8 +154,8 @@ class ControlState
 
   # sets attributes of current instance equal to the non-nil values of other instance
   #
-  # @param [ControlMessage] other
-  # @return [ControlMessage] self
+  # @param [ControlState] other
+  # @return [ControlState] self
   def merge!(other)
     other.read_present.each do |k, v|
       write(k, v)
