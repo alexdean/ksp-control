@@ -118,31 +118,10 @@ RSpec.describe ControlState, type: :model do
       )
 
       out = newer.diff(older)
+
       expect(out.read(:action_group_3)).to eq 1
       expect(out.read(:throttle)).to eq nil
       expect(out.read(:autopilot_mode)).to eq 4
-    end
-
-    xit 'always returns non-nil action_group' do
-      older = ControlState.new(
-        action_group_5: 1
-      )
-      newer = ControlState.new(
-        action_group_5: 1
-      )
-
-      out = newer.diff(older)
-      expect(out.read(:action_group)).to eq 1
-    end
-  end
-
-  xdescribe '#each' do
-    it 'enumerates all attributes' do
-      seen_attrs = []
-
-      subject.each { |k, v| seen_attrs << k }
-
-      expect(seen_attrs).to eq described_class.valid_attrs
     end
   end
 
@@ -194,6 +173,23 @@ RSpec.describe ControlState, type: :model do
       expect(subject.read(:throttle)).to eq 78
       subject.merge!(other)
       expect(subject.read(:throttle)).to eq 89
+    end
+  end
+
+  describe '#reset_command_attrs!' do
+    it 'sets all command attributes to nil' do
+      subject.class.command_attrs.each do |attr|
+        subject.write(attr, true)
+      end
+
+      subject.reset_command_attrs!
+
+      subject.class.command_attrs.each do |attr|
+        expect(subject.read(attr)).to(
+          eq(nil),
+          "expected :#{attr} to be nil, but it wasn't."
+        )
+      end
     end
   end
 end

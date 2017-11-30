@@ -141,15 +141,6 @@ class ControlState
     out
   end
 
-  # TODO: unused?
-  # if used... do we enumerate all values or only the non-nil ones?
-  # probably all? (more flexible. client can discard nils if it wants to.)
-  # def each
-  #   @attrs.each do |key, value|
-  #     yield key, value
-  #   end
-  # end
-
   # does this instance have the same attribute values as the other?
   #
   # @param [ControlMessage] other
@@ -173,10 +164,10 @@ class ControlState
     self
   end
 
-  # set all momentary attributes back to false.
+  # set all command attributes back to nil.
   def reset_command_attrs!
     self.class.command_attrs.each do |attr|
-      write(attr, false)
+      write(attr, nil)
     end
   end
 
