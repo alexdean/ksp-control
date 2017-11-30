@@ -1,6 +1,6 @@
-# a message from the control board. a data object.
-class ControlMessage
-  # create a ControlMessage from a raw message string
+# represents the current state of the control panel
+class ControlState
+  # create a ControlState from a raw message string
   #
   # ## format
   #
@@ -31,6 +31,9 @@ class ControlMessage
 
     bitmask_attrs.each_with_index do |attr, idx|
       # false: set value to false. nil: don't send value.
+      # if a command bit is unset, don't send anything
+      # if a normal state bit is unset, that state is false (which may be
+      # transmitted, for example "turn off the brakes".)
       negative = command_attrs.include?(attr) ? nil : false
 
       args[attr] = ((bitmask & (1 << idx)) != 0) ? true : negative
