@@ -1,72 +1,78 @@
 # a message from the control board. a data object.
 class ControlMessage
-
-  NO_VALUE = '-'
-
   # create a ControlMessage from a raw message string
   #
   # ## format
   #
-  #   throttle: first 2 characters. '-' for 'disabled'
+  #   throttle: first 2 characters. '00' - '99'
   #   autopilot mode: 3rd character. '-' for 'disabled'
   #   remaining digits: bitmask for all switches & other boolean values
+  #     order specified in .bitmask_attrs
   def self.parse(message_str)
     args = {}
-    value_attrs.each do |key, pos|
-      val = message_str[pos]
-      val = val[0] == NO_VALUE ? nil : val.to_i
 
-      args[key] = val
-    end
+    args[:throttle] = message_str[0..1].to_i
+
+    args[:autopilot_mode] = case message_str[2]
+                               # these must all be valid telemachus 'mj.' commands
+                               when '0' then 'prograde'
+                               when '1' then 'retrograde'
+                               when '2' then 'normalplus'
+                               when '3' then 'normalminus'
+                               when '4' then 'radialplus'
+                               when '5' then 'radialminus'
+                               when '6' then 'targetplus'
+                               when '7' then 'targetminus'
+                               when '8' then 'node'
+                               else 'smartassoff'
+                             end
 
     bitmask = message_str[3..-1].to_i
+
     bitmask_attrs.each_with_index do |attr, idx|
-      args[attr] = ((bitmask & (1 << idx)) != 0)
+      # false: set value to false. nil: don't send value.
+      negative = command_attrs.include?(attr) ? nil : false
+
+      args[attr] = ((bitmask & (1 << idx)) != 0) ? true : negative
     end
 
     new(args)
   end
 
   def self.value_attrs
-    # f.setThrottle[0.0] / f.setThrottle[1.0]
-    #
-    # mj.prograde
-    # mj.retrograde
-    # mj.normalplus
-    # mj.normalminus
-    # mj.radialplus
-    # mj.radialminus
-    # mj.targetplus
-    # mj.targetminus
-    {
-      throttle: 0..1,
-      autopilot_mode: 2
-    }
+    %i[
+      throttle
+      autopilot_mode
+    ]
   end
 
+  # the order here must match the order of bits set by arduino
   def self.bitmask_attrs
-    # f.stage
-    # f.sas[True]
-    # f.rcs[True]
-    # f.light[True]
-    # f.gear[True]
-    # f.brake[True]
-    # f.ag1
-    # f.ag2
-    # f.ag3
-    # f.ag4
-    # f.ag5
-    # f.ag6
-    # f.ag7
-    # f.ag8
-    # f.ag9
     %i[
       stage
-      sas_enable
-      rcs_enable
-      lights_enable
-      gear_enable
-      brakes_enable
+      sas
+      rcs
+      lights
+      gear
+      brakes
+      action_group_1
+      action_group_2
+      action_group_3
+      action_group_4
+      action_group_5
+      action_group_6
+      action_group_7
+      action_group_8
+      action_group_9
+    ]
+  end
+
+  # these are booleans which may be set once
+  # but should not retain that setting, and should revert to false
+  # after being dispatched to telemachus.
+  def self.command_attrs
+    %i[
+      stage
       action_group_1
       action_group_2
       action_group_3
@@ -80,7 +86,7 @@ class ControlMessage
   end
 
   def self.valid_attrs
-    value_attrs.keys + bitmask_attrs
+    value_attrs + bitmask_attrs
   end
 
   def initialize(attrs = {})
@@ -132,17 +138,43 @@ class ControlMessage
     out
   end
 
-  def each
-    @attrs.each do |key, value|
-      yield key, value
-    end
-  end
+  # TODO: unused?
+  # if used... do we enumerate all values or only the non-nil ones?
+  # probably all? (more flexible. client can discard nils if it wants to.)
+  # def each
+  #   @attrs.each do |key, value|
+  #     yield key, value
+  #   end
+  # end
 
+  # does this instance have the same attribute values as the other?
+  #
+  # @param [ControlMessage] other
+  # @return [boolean]
   def ==(other)
     self.class.valid_attrs.each do |attr|
       return false if read(attr) != other.read(attr)
     end
     true
+  end
+
+  # sets attributes of current instance equal to the non-nil values of other instance
+  #
+  # @param [ControlMessage] other
+  # @return [ControlMessage] self
+  def merge!(other)
+    other.read_present.each do |k, v|
+      write(k, v)
+    end
+
+    self
+  end
+
+  # set all momentary attributes back to false.
+  def reset_command_attrs!
+    self.class.command_attrs.each do |attr|
+      write(attr, false)
+    end
   end
 
   private

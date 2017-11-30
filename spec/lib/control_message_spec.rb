@@ -3,29 +3,64 @@ require root.join('lib/control_message.rb')
 
 RSpec.describe ControlMessage, type: :model do
   describe '.parse' do
-    it 'extracts data' do
-      input = '0131'
+    it 'extracts throttle setting from first 2 characters' do
+      input = '59-0'
       subject = ControlMessage.parse(input)
 
-      expect(subject.read(:throttle)).to eq 1
-      expect(subject.read(:autopilot_mode)).to eq 3
-      expect(subject.read(:stage)).to eq true
+      expect(subject.read(:throttle)).to eq 59
     end
 
-    it 'sets nil values' do
-      input = '---0'
+    it 'extracts autopilot mode from 3rd character' do
+      input = '0020'
+      subject = ControlMessage.parse(input)
+      expect(subject.read(:autopilot_mode)).to eq 'normalplus'
+
+      input = '00-0'
+      subject = ControlMessage.parse(input)
+      expect(subject.read(:autopilot_mode)).to eq 'smartassoff'
+    end
+
+    it 'parses inactive momentary bitmask values as nil' do
+      # when these aren't sent by arduino, don't send anything to telemachus
+      input = "---0"
       subject = ControlMessage.parse(input)
 
-      expect(subject.read(:throttle)).to eq nil
-      expect(subject.read(:autopilot_mode)).to eq nil
-      expect(subject.read(:rcs_enable)).to eq false
+      subject.class.command_attrs.each do |attr|
+        expect(subject.read(attr)).to(eq(nil), "expected :#{attr} to be nil, but it wasn't.")
+      end
+    end
+
+    it 'parses normal inactive bitmask values as false' do
+      # when these aren't set, send false. (tell telemachus "turn this off".)
+      input = "---0"
+      subject = ControlMessage.parse(input)
+
+      (subject.class.bitmask_attrs - subject.class.command_attrs).each do |attr|
+        expect(subject.read(attr)).to(eq(false), "expected :#{attr} to be false, but it wasn't.")
+      end
+    end
+
+    it 'parses active bitmask values as true' do
+      mask = (2 ** 15) - 1
+      input = "---#{mask}"
+      subject = ControlMessage.parse(input)
+
+      subject.class.bitmask_attrs.each do |attr|
+        expect(subject.read(attr)).to(eq(true), "expected :#{attr} to be true, but it wasn't.")
+      end
+    end
+  end
+
+  describe '.valid_attrs' do
+    it 'should be the union of value_attrs and bitmask_attrs' do
+      expect(described_class.valid_attrs).to eq(described_class.value_attrs + described_class.bitmask_attrs)
     end
   end
 
   describe '#read' do
     it 'reads desired attribute' do
-      subject = ControlMessage.new(action_group_2: 1)
-      expect(subject.read(:action_group_2)).to eq 1
+      subject = ControlMessage.new(action_group_2: true)
+      expect(subject.read(:action_group_2)).to eq true
     end
 
     it 'raises exception for unknown attribute' do
@@ -38,11 +73,16 @@ RSpec.describe ControlMessage, type: :model do
 
   describe '#read_present' do
     it 'returns hash of non-nil attributes' do
-      subject = ControlMessage.new(action_group_9: 1, throttle: nil, autopilot_mode: 5)
+      subject = ControlMessage.new(
+        throttle: nil,
+        autopilot_mode: 'normalminus',
+        action_group_9: true
+      )
+
       expect(subject.read_present).to(
         eq(
-          action_group_9: 1,
-          autopilot_mode: 5
+          autopilot_mode: 'normalminus',
+          action_group_9: true
         )
       )
     end
@@ -96,8 +136,14 @@ RSpec.describe ControlMessage, type: :model do
     end
   end
 
-  describe '#each' do
-    it 'enumerates all attributes'
+  xdescribe '#each' do
+    it 'enumerates all attributes' do
+      seen_attrs = []
+
+      subject.each { |k, v| seen_attrs << k }
+
+      expect(seen_attrs).to eq described_class.valid_attrs
+    end
   end
 
   describe '#==' do
@@ -120,6 +166,34 @@ RSpec.describe ControlMessage, type: :model do
       this = ControlMessage.new(throttle: 99, autopilot_mode: nil)
       that = ControlMessage.new(throttle: 99, autopilot_mode: 4)
       expect(this == that).to eq false
+    end
+  end
+
+  describe '#merge', focus: true do
+    it 'sets attributes of current instance to equal the values of other instance' do
+      other = ControlMessage.new(sas: true)
+
+      expect(subject.read(:sas)).to eq nil
+      subject.merge!(other)
+      expect(subject.read(:sas)).to eq true
+    end
+
+    it 'does not overwrite existing values with nils from other' do
+      subject.write(:throttle, 78)
+      other = ControlMessage.new(throttle: nil)
+
+      expect(subject.read(:throttle)).to eq 78
+      subject.merge!(other)
+      expect(subject.read(:throttle)).to eq 78
+    end
+
+    it 'overwrites current values with values from other' do
+      subject.write(:throttle, 78)
+      other = ControlMessage.new(throttle: 89)
+
+      expect(subject.read(:throttle)).to eq 78
+      subject.merge!(other)
+      expect(subject.read(:throttle)).to eq 89
     end
   end
 end
