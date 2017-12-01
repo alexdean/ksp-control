@@ -1,4 +1,5 @@
 require 'net/http'
+require 'logger'
 require_relative './control_state.rb'
 
 # compute state changes and send them to telemachus
@@ -7,10 +8,12 @@ class Dispatcher
 
   def initialize(
     telemachus_url: 'http://127.0.0.1:8085/telemachus/datalink',
-    current_state: nil
+    current_state: nil,
+    logger: nil
   )
     @telemachus_url = telemachus_url
     @current_state = current_state || ControlState.new
+    @log = logger || Logger.new('/dev/null')
     @command_templates = {
       throttle: 'f.setThrottle[%s]',
       autopilot_mode: 'mj.%s',
@@ -37,35 +40,56 @@ class Dispatcher
   # @param [ControlState] an incoming message to process
   def process(command)
     changes = command.diff(current_state)
-    post(changes)
+    sent = post(changes)
+
     current_state.merge!(command)
     current_state.reset_command_attrs!
+
+    return sent
   end
 
   def post(changes)
     to_send = changes.read_present
-    return if !to_send.any? { |k, v| !v.nil? }
-
     commands = {}
     url_key = 'a'
+    log = []
     to_send.select { |k, v| !v.nil? }.each do |command_key, command_value|
+      log << "#{command_key}=#{command_value.to_s.gsub(/smartassoff/, 'disabled')}"
       value = case command_value
                 when true then 'True'
                 when false then 'False'
                 else command_value
               end
-      # TODO log.info "#{command_key}: #{value}"
-      # gsub('smartassoff', 'disabled')
       commands[url_key] = @command_templates[command_key].gsub(/%s/, value.to_s)
       url_key = url_key.succ
     end
 
+    return if commands.size == 0
+
+
+
     uri = URI(@telemachus_url)
     uri.query = URI.encode_www_form(commands)
 
+    @log.info log.join(', ')
+
+    # TODO: detect & report errors
     # yes. we're changing state with a GET request.
     # telemachus don't need no stinking REST.
-    Net::HTTP.get uri
-    # TODO: detect & report errors
+    ms = timed do
+      Net::HTTP.get uri
+    end
+    @log.debug { "   #{uri} (#{ms}ms)" }
+
+    true
+  end
+
+  private
+
+  def timed
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    yield
+    ended_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    ((ended_at - started_at) * 1000).round
   end
 end

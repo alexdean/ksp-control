@@ -1,11 +1,12 @@
 require 'net/http'
+require 'logger'
 require 'serialport'
 require_relative 'lib/control_state'
 require_relative 'lib/dispatcher'
 
 serial = SerialPort.new('/dev/tty.usbmodem1441', 9600, 8, 1, SerialPort::NONE)
 
-dispatcher = Dispatcher.new
+dispatcher = Dispatcher.new(logger: Logger.new($stdout))
 threads = []
 
 threads << Thread.new {

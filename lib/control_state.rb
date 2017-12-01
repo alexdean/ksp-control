@@ -106,9 +106,9 @@ class ControlState
     @attrs[attr]
   end
 
-  # TODO: is it right to filter out nils? (how do we send "turn this off?")
-  # nil means "no change". so we don't send those.
-  # "turn this off" is a '0'
+  # return a hash of the non-nil attributes of this state
+  #
+  # @return [Hash]
   def read_present
     @attrs.select { |k,v| !v.nil? }
   end
