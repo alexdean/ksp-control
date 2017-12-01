@@ -3,18 +3,34 @@ require 'logger'
 require 'serialport'
 require_relative 'lib/control_state'
 require_relative 'lib/dispatcher'
+require_relative 'lib/timed'
+
+include Timed
 
 serial = SerialPort.new('/dev/tty.usbmodem1441', 9600, 8, 1, SerialPort::NONE)
 
-dispatcher = Dispatcher.new(logger: Logger.new($stdout))
+level = Logger::DEBUG
+
+logger = Logger.new($stdout)
+logger.procname = 'main'
+logger.level = level
+
+dispatch_logger = Logger.new($stdout)
+dispatch_logger.procname = 'dispatch'
+dispatch_logger.level = level
+
+dispatcher = Dispatcher.new(logger: dispatch_logger)
 threads = []
 
 threads << Thread.new {
   loop {
     raw = serial.gets
     if raw
-      new_state = ControlState.parse(raw.chomp)
-      dispatcher.process(new_state)
+      ms = timed do
+        new_state = ControlState.parse(raw.chomp)
+        dispatcher.process(new_state)
+      end
+      logger.info "#{ms} ms"
     end
   }
 }

@@ -1,9 +1,11 @@
 require 'net/http'
 require 'logger'
 require_relative './control_state.rb'
+require_relative './timed.rb'
 
 # compute state changes and send them to telemachus
 class Dispatcher
+  include Timed
   attr_reader :current_state
 
   def initialize(
@@ -82,14 +84,5 @@ class Dispatcher
     @log.debug { "   #{uri} (#{ms}ms)" }
 
     true
-  end
-
-  private
-
-  def timed
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    yield
-    ended_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    ((ended_at - started_at) * 1000).round
   end
 end
