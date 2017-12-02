@@ -125,5 +125,33 @@ RSpec.describe Dispatcher, type: :model do
       command = ControlState.new(stage: true, action_group_5: true)
       subject.post(command)
     end
+
+    it 'logs an error for unrecognized command keys' do
+      # imagine we updated ControlState but forgot to update Dispatcher
+      updated_control_state = Class.new(ControlState) do
+        def self.valid_attrs
+          super + [:additional_command]
+        end
+      end
+
+      command = updated_control_state.new(additional_command: true)
+      logger = Logger.new('/dev/null')
+
+      subject = Dispatcher.new(logger: logger)
+
+      expect(Net::HTTP).not_to receive(:get)
+      expect(logger).to receive(:error).with('ignoring unrecognized command additional_command:true')
+
+      subject.post(command)
+    end
+
+    it 'does not send commands when send_commands is false' do
+      command = ControlState.new(throttle: 50)
+      subject = Dispatcher.new(send_commands: false)
+
+      expect(Net::HTTP).not_to receive(:get)
+
+      subject.process(command)
+    end
   end
 end

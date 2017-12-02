@@ -4,18 +4,33 @@ require_relative './control_state.rb'
 require_relative './timed.rb'
 
 # compute state changes and send them to telemachus
+#
+# @todo: terminology confusion. is a 'command' any instruction sent to
+#   telemachus, or is that term only for momentary/valueless instructions
+#   like 'stage' or action groups?
 class Dispatcher
   include Timed
   attr_reader :current_state
 
+  # @param [String] telemachus_url where to send commands to.
+  # @param [CommandState] current_state Current state of the control
+  #   panel. Subsequent command differences will be computed from this state.
+  # @param [Logger] logger A logger to write output to.
+  # @param [boolean] send_commands Should HTTP requests actually be made to
+  #   telemachus? Use `false` for integration testing.
   def initialize(
     telemachus_url: 'http://127.0.0.1:8085/telemachus/datalink',
     current_state: nil,
-    logger: nil
+    logger: nil,
+    send_commands: true
   )
     @telemachus_url = telemachus_url
     @current_state = current_state || ControlState.new
     @log = logger || Logger.new('/dev/null')
+    @send_commands = send_commands
+
+    # CommandState values are subtituted into these strings to build
+    # valid telemachus command strings.
     @command_templates = {
       throttle: 'f.setThrottle[%s]',
       autopilot_mode: 'mj.%s',
@@ -54,34 +69,44 @@ class Dispatcher
     to_send = changes.read_present
     commands = {}
     url_key = 'a'
-    log = []
+    log_msgs = []
+
     to_send.select { |k, v| !v.nil? }.each do |command_key, command_value|
-      log << "#{command_key}=#{command_value.to_s.gsub(/smartassoff/, 'disabled')}"
+      log_msgs << "#{command_key}=#{command_value.to_s.gsub(/smartassoff/, 'disabled')}"
       value = case command_value
                 when true then 'True'
                 when false then 'False'
                 else command_value
               end
-      commands[url_key] = @command_templates[command_key].gsub(/%s/, value.to_s)
+
+      template = @command_templates[command_key]
+      if template.nil?
+        @log.error "ignoring unrecognized command #{command_key}:#{command_value}"
+      else
+        commands[url_key] = template.gsub(/%s/, value.to_s)
+      end
+
       url_key = url_key.succ
     end
 
     return if commands.size == 0
 
-
-
     uri = URI(@telemachus_url)
     uri.query = URI.encode_www_form(commands)
 
-    @log.info log.join(', ')
+    @log.info log_msgs.join(', ')
 
     # TODO: detect & report errors
     # yes. we're changing state with a GET request.
     # telemachus don't need no stinking REST.
     ms = timed do
-      Net::HTTP.get uri
+      Net::HTTP.get uri if @send_commands
     end
-    @log.debug { "   #{uri} (#{ms}ms)" }
+
+    @log.debug {  "   #{uri} (#{ms}ms)" }
+    if !@send_commands
+      @log.warn { "   not sent due to send_commands:false"}
+    end
 
     true
   end
