@@ -7,7 +7,14 @@ RSpec.describe ControlState, type: :model do
       input = '59-0'
       subject = ControlState.parse(input)
 
-      expect(subject.read(:throttle)).to eq 59
+      expect(subject.read(:throttle)).to eq 0.59
+    end
+
+    it 'converts throttle 99 to throttle 100' do
+      input = '99-0'
+      subject = ControlState.parse(input)
+
+      expect(subject.read(:throttle)).to eq 1.0
     end
 
     it 'extracts autopilot mode from 3rd character' do

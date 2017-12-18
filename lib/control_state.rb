@@ -11,7 +11,10 @@ class ControlState
   def self.parse(message_str)
     args = {}
 
-    args[:throttle] = message_str[0..1].to_i
+    # message protocol supports 0-99, but we want 0-100.
+    throttle = message_str[0..1].to_i
+    throttle = 100 if throttle == 99
+    args[:throttle] =  throttle / 100.to_f
 
     args[:autopilot_mode] = case message_str[2]
                                # these must all be valid telemachus 'mj.' commands
