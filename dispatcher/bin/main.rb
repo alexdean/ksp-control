@@ -2,9 +2,9 @@ require 'net/http'
 require 'logger'
 require 'serialport'
 require 'optparse'
-require_relative 'lib/control_state'
-require_relative 'lib/dispatcher'
-require_relative 'lib/timed'
+require_relative '../lib/control_state'
+require_relative '../lib/dispatcher'
+require_relative '../lib/timed'
 
 include Timed
 

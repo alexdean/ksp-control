@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+dispatcher_root_dir = File.dirname(File.expand_path('..', __FILE__))
+Dir.chdir dispatcher_root_dir
+
+`which bundler > /dev/null`
+if !$?.success?
+  `gem install bundler --no-ri --no-rdoc && bundle`
+end
+
+exec 'bundle exec ruby bin/main.rb'
