@@ -1,0 +1,2 @@
+language: ruby
+script: ./test.sh # seems to be easiest way to get travis to run in a subdir
