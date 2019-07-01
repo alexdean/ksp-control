@@ -10,6 +10,10 @@ allowing us to operate an in-game spacecraft via HTTP. ksp-control receives
 serial command data from a hardware control panel and translates these commands
 into telemacus commands.
 
+## Build Status
+
+[![Build Status](https://travis-ci.org/alexdean/ksp-control.svg?branch=master)](https://travis-ci.org/alexdean/ksp-control)
+
 ## Arduino
 
 The Arduino sketch is written for a custom hardware device I built. You can
