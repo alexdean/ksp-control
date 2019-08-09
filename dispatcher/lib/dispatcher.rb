@@ -100,7 +100,12 @@ class Dispatcher
     # yes. we're changing state with a GET request.
     # telemachus don't need no stinking REST.
     ms = timed do
-      Net::HTTP.get uri if @send_commands
+      begin
+        Net::HTTP.get uri if @send_commands
+      # don't die if telemachus isn't listening yet.
+      rescue => e
+        @log.error { "   #{uri} #{e.message} (#{e.class})" }
+      end
     end
 
     @log.debug {  "   #{uri} (#{ms}ms)" }

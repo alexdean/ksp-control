@@ -153,5 +153,7 @@ RSpec.describe Dispatcher, type: :model do
 
       subject.process(command)
     end
+
+    it 'handles errors during POST'
   end
 end
