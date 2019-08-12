@@ -56,6 +56,10 @@ class Dispatcher
   #
   # @param [ControlState] an incoming message to process
   def process(command)
+    if !command.is_a?(ControlState)
+      raise ArgumentError, "#process expects a ControlState, but received a #{command.class}."
+    end
+
     changes = command.diff(current_state)
     sent = post(changes)
 

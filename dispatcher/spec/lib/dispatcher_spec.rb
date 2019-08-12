@@ -12,6 +12,12 @@ RSpec.describe Dispatcher, type: :model do
     #   subject.process_queue(msg_0)
     # end
 
+    it 'raises an exception if given a non-CommandState argument' do
+      expect {
+        subject.process('this is not a ControlState')
+      }.to raise_error(ArgumentError, '#process expects a ControlState, but received a String.')
+    end
+
     it 'posts state changes to telemachus' do
       new_state = ControlState.new(throttle: 100, sas: true)
       diff = new_state.diff(subject.current_state)
