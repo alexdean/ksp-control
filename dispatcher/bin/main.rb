@@ -87,9 +87,3 @@ threads << Thread.new {
 }
 
 threads.each { |thr| thr.join }
-
-
-# TODO: handle
-
-# I, [2017-12-18T20:19:44.109027 #40703]  INFO -- dispatch: throttle=0.5
-# /Users/alex/.rvm/rubies/ruby-2.4.2/lib/ruby/2.4.0/net/http.rb:906:in `rescue in block in connect': Failed to open TCP connection to 127.0.0.1:8085 (Connection refused - connect(2) for "127.0.0.1" port 8085) (Errno::ECONNREFUSED)

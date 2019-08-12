@@ -154,6 +154,28 @@ RSpec.describe Dispatcher, type: :model do
       subject.process(command)
     end
 
-    it 'handles errors during POST'
+    it 'handles and logs errors which occur during communication with telemachus' do
+      logger = Logger.new('/dev/null')
+
+      raised_error_message = 'Failed to open TCP connection to 127.0.0.1:8085 (Connection refused - connect(2) for "127.0.0.1" port 8085)'
+
+      expect(logger).to(
+        receive(:error)
+        .with("   http://127.0.0.1:8085/telemachus/datalink?a=f.stage&b=f.ag5 Connection refused - #{raised_error_message} (Errno::ECONNREFUSED)")
+      )
+
+      expect(Net::HTTP).to(
+        receive(:get)
+        .and_raise(
+          Errno::ECONNREFUSED,
+          raised_error_message
+        )
+      )
+
+      command = ControlState.new(stage: true, action_group_5: true)
+
+      subject = Dispatcher.new(logger: logger)
+      subject.post(command)
+    end
   end
 end

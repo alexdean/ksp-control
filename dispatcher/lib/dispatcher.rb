@@ -104,7 +104,7 @@ class Dispatcher
         Net::HTTP.get uri if @send_commands
       # don't die if telemachus isn't listening yet.
       rescue => e
-        @log.error { "   #{uri} #{e.message} (#{e.class})" }
+        @log.error "   #{uri} #{e.message} (#{e.class})"
       end
     end
 
