@@ -17,4 +17,4 @@ jobs:
     - name: Install dependencies
       run: cd dispatcher && bundle install
     - name: Run tests
-      run: cd dispatcher && bundle exec rake spec
+      run: cd dispatcher && bundle exec rspec
