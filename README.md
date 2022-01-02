@@ -12,7 +12,7 @@ into telemacus commands.
 
 ## Build Status
 
-[![Build Status](https://travis-ci.org/alexdean/ksp-control.svg?branch=master)](https://travis-ci.org/alexdean/ksp-control)
+[![Test Suite](https://github.com/alexdean/ksp-control/actions/workflows/rspec.yml/badge.svg?branch=master)](https://github.com/alexdean/ksp-control/actions/workflows/rspec.yml?query=branch%3Amaster)
 
 ## Arduino
 
